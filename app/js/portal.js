@@ -14,7 +14,23 @@
     'de Dados (LGPD) e não são compartilhados para fins de marketing. Você pode solicitar acesso, ' +
     'correção ou eliminação dos seus dados pelo canal de atendimento do titular.';
 
-  var ctx = { cpf: null, code: null };
+  var ctx = { cpf: null, code: null, apiSms: false };
+  var api = { up: false };
+
+  // Detecta o backend de integração; se online, o portal usa a API real.
+  function detectApi() {
+    if (!window.HostspostAPI) return;
+    window.HostspostAPI.health().then(function (r) {
+      api.up = (r.status === 200 && r.ok === true);
+      renderApiBadge();
+    });
+  }
+  function renderApiBadge() {
+    var el = document.getElementById('api-badge');
+    if (!el) return;
+    el.textContent = api.up ? '● Backend conectado' : '○ Modo demo (offline)';
+    el.className = 'badge ' + (api.up ? 'ok' : 'muted') + ' small';
+  }
 
   function cfg(k) { return window.Store.getConfig(k); }
   function steps() {
@@ -108,15 +124,29 @@
     }
     ctx.cpf = cpf;
 
-    if (cfg('smsVerification')) {
-      ctx.code = String(1000 + Math.floor(rngSeed() * 8999));
-      $('#sms-demo').textContent = ctx.code;
-      show('sms');
-      resetCode();
-    } else {
-      connect(false);
-    }
+    if (cfg('smsVerification')) startSms();
+    else connect(false);
   });
+
+  function startSms() {
+    // Com backend: o código é gerado no servidor. Sem backend: gera local (demo).
+    if (api.up) {
+      window.HostspostAPI.smsSend(ctx.cpf).then(function (r) {
+        if (r.ok) {
+          ctx.apiSms = true;
+          ctx.code = null;
+          $('#sms-demo').textContent = (r.mockCode != null ? r.mockCode : '••••');
+          show('sms'); resetCode();
+        } else { localSms(); }
+      });
+    } else { localSms(); }
+  }
+  function localSms() {
+    ctx.apiSms = false;
+    ctx.code = String(1000 + Math.floor(rngSeed() * 8999));
+    $('#sms-demo').textContent = ctx.code;
+    show('sms'); resetCode();
+  }
 
   // ---- Etapa 3: código SMS ----------------------------------------------
   var codeInputs = $$('#code-inputs input');
@@ -133,24 +163,52 @@
   $('#btn-sms').addEventListener('click', function () {
     var typed = codeInputs.map(function (i) { return i.value; }).join('');
     var erro = $('#sms-erro'); erro.hidden = true;
-    if (typed !== ctx.code) { erro.textContent = 'Código incorreto. Tente novamente.'; erro.hidden = false; resetCode(); return; }
-    window.Store.logAndSave('SMS', 'Código SMS validado para ' + ctx.cpf, 'visitante');
-    connect(false);
+    function bad() { erro.textContent = 'Código incorreto. Tente novamente.'; erro.hidden = false; resetCode(); }
+    function good() { window.Store.logAndSave('SMS', 'Código SMS validado para ' + ctx.cpf, 'visitante'); connect(false); }
+
+    if (ctx.apiSms) {
+      window.HostspostAPI.smsVerify(ctx.cpf, typed).then(function (r) { r.ok ? good() : bad(); });
+    } else {
+      typed === ctx.code ? good() : bad();
+    }
   });
 
   // ---- Etapa 4: conectar -------------------------------------------------
   function connect(viaGoogle) {
-    // registra/atualiza usuário e dispositivo
+    var cpf = ctx.cpf;
+    var mac = 'AA:BB:CC:' + hex2() + ':' + hex2() + ':' + hex2();
+    // Com backend e login por CPF, o SERVIDOR decide (lista negra + limite).
+    if (api.up && !viaGoogle && cpf && cpf.indexOf('google-') !== 0) {
+      window.HostspostAPI.login(cpf, mac).then(function (r) {
+        if (r.ok) finishConnect(viaGoogle, mac);
+        else rejectLogin(r);
+      });
+      return;
+    }
+    finishConnect(viaGoogle, mac);
+  }
+
+  function rejectLogin(r) {
+    show('cpf');
+    var erro = $('#cpf-erro');
+    erro.textContent = r.reason === 'blacklist' ? '⛔ Acesso bloqueado para este CPF.'
+      : r.reason === 'device_limit' ? '📵 Limite de dispositivos atingido.'
+      : 'Não foi possível liberar o acesso (' + (r.reason || 'erro') + ').';
+    erro.hidden = false;
+  }
+
+  function finishConnect(viaGoogle, mac) {
+    // registra/atualiza usuário e dispositivo (visão do admin / demo)
     var st = window.Store.get();
     var cpf = ctx.cpf;
     if (cpf && cpf.indexOf('google-') !== 0) {
       var u = window.Store.findUser(cpf);
-      var mac = 'AA:BB:CC:' + hex2() + ':' + hex2() + ':' + hex2();
       if (!u) { u = { cpf: cpf, nome: 'Visitante ' + cpf.slice(-4), setor: 'Recepção', status: 'ativo', dispositivos: [] }; st.users.push(u); }
       if (u.dispositivos.length < 2 || !cfg('deviceLimit2')) u.dispositivos.push({ mac: mac, ts: Date.now() });
       st.sessions.unshift({ cpf: cpf, mac: mac, setor: u.setor, inicio: Date.now(), fim: null, bytes: 0 });
     }
-    window.Store.logAndSave('LOGIN', 'Acesso liberado' + (viaGoogle ? ' (Google)' : '') + (cpf ? ' — ' + cpf : ''), 'visitante');
+    window.Store.logAndSave('LOGIN', 'Acesso liberado' + (viaGoogle ? ' (Google)' : '') +
+      (cpf ? ' — ' + cpf : '') + (api.up ? ' [via backend]' : ''), 'visitante');
 
     // aplica recursos pós-conexão conforme config
     $('#banner').hidden = !cfg('campaignBanner');
@@ -189,5 +247,6 @@
   });
 
   // start
+  detectApi();
   show('termo');
 })();

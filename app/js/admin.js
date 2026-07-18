@@ -8,6 +8,32 @@
   var $ = function (s, r) { return (r || document).querySelector(s); };
   var S = window.Store;
 
+  // ---- integração com o backend (opcional) ----
+  var api = { up: false };
+  function detectApi() {
+    if (!window.HostspostAPI) return;
+    window.HostspostAPI.health().then(function (r) {
+      api.up = (r.status === 200 && r.ok === true);
+      renderApiBadge();
+    });
+  }
+  function renderApiBadge() {
+    var el = document.getElementById('api-badge');
+    if (!el) return;
+    el.textContent = api.up ? '● backend conectado' : '○ backend offline';
+    el.className = 'badge ' + (api.up ? 'ok' : 'muted');
+  }
+  // espelha a lista negra no backend (para o portal via backend respeitar)
+  function mirrorAdd(tipo, valor, motivo) {
+    var ok = S.addBlacklist(tipo, valor, motivo);
+    if (ok && api.up) window.HostspostAPI.blacklistAdd(valor, motivo);
+    return ok;
+  }
+  function mirrorRemove(valor) {
+    S.removeBlacklist(valor);
+    if (api.up) window.HostspostAPI.blacklistRemove(valor);
+  }
+
   var TABS = [
     ['dashboard', 'Dashboard'], ['config', 'Configurações do Portal'], ['users', 'Usuários'],
     ['blacklist', 'Lista negra'], ['filter', 'Filtro de conteúdo'], ['band', 'Agendamento de banda'],
@@ -113,12 +139,12 @@
     });
     tb.querySelectorAll('[data-block]').forEach(function (b) {
       b.addEventListener('click', function () {
-        S.addBlacklist('cpf', b.getAttribute('data-block'), 'Bloqueado pelo admin na tabela de usuários');
+        mirrorAdd('cpf', b.getAttribute('data-block'), 'Bloqueado pelo admin na tabela de usuários');
         toast('Usuário bloqueado e adicionado à lista negra');
       });
     });
     tb.querySelectorAll('[data-unblock]').forEach(function (b) {
-      b.addEventListener('click', function () { S.removeBlacklist(b.getAttribute('data-unblock')); toast('Usuário desbloqueado'); });
+      b.addEventListener('click', function () { mirrorRemove(b.getAttribute('data-unblock')); toast('Usuário desbloqueado'); });
     });
   }
 
@@ -133,14 +159,14 @@
       tb.appendChild(tr);
     });
     tb.querySelectorAll('[data-rm]').forEach(function (x) {
-      x.addEventListener('click', function () { S.removeBlacklist(x.getAttribute('data-rm')); toast('Removido da lista negra'); });
+      x.addEventListener('click', function () { mirrorRemove(x.getAttribute('data-rm')); toast('Removido da lista negra'); });
     });
   }
   function bindBlacklistForm() {
     $('#bl-add').addEventListener('click', function () {
       var v = $('#bl-valor').value.trim();
       if (!v) { toast('Informe um valor'); return; }
-      var ok = S.addBlacklist($('#bl-tipo').value, v, $('#bl-motivo').value.trim());
+      var ok = mirrorAdd($('#bl-tipo').value, v, $('#bl-motivo').value.trim());
       if (!ok) { toast('Este valor já está na lista'); return; }
       $('#bl-valor').value = ''; $('#bl-motivo').value = '';
       toast('Adicionado à lista negra');
@@ -268,5 +294,6 @@
   // re-render quando o estado muda (inclusive por outra aba)
   window.addEventListener('hostspost:change', function () { render(); });
 
+  detectApi();
   render();
 })();
