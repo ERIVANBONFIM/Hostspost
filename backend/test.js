@@ -19,13 +19,14 @@ async function testLogic() {
   var s = svc.createService(store, { deviceLimit: 2 });
   var cpf = '123.456.789-00';
 
-  // SMS
+  // SMS (uma tentativa errada não consome o código; rate-limit impede reenvio imediato)
   var sent = await s.sendSms(cpf);
   ok(sent.ok && /^\d{4}$/.test(sent.mockCode), 'sendSms gera código de 4 dígitos');
   ok((await s.verifySms(cpf, '0000')).ok === false, 'verifySms rejeita código errado');
-  var sent2 = await s.sendSms(cpf);
-  ok((await s.verifySms(cpf, sent2.mockCode)).ok === true, 'verifySms aceita código correto');
-  ok((await s.verifySms(cpf, sent2.mockCode)).ok === false, 'código é consumido (uso único)');
+  ok((await s.verifySms(cpf, sent.mockCode)).ok === true, 'verifySms aceita código correto');
+  ok((await s.verifySms(cpf, sent.mockCode)).ok === false, 'código é consumido (uso único)');
+  // rate-limit: segundo envio imediato é barrado
+  ok((await s.sendSms(cpf)).reason === 'rate_limited', 'segundo SMS imediato é barrado (rate-limit)');
 
   // login + limite de dispositivos
   ok((await s.login({ cpf: cpf, mac: 'M1' })).ok === true, '1º dispositivo entra');
@@ -99,7 +100,55 @@ function testHttp() {
 
         var nf = await req(port, 'GET', '/api/naoexiste');
         ok(nf.status === 404, 'rota inexistente -> 404');
+
+        var mt = await req(port, 'GET', '/api/metrics');
+        ok(mt.status === 200 && typeof mt.body.requests === 'number', 'GET /api/metrics conta requisições');
       } catch (e) { fail++; console.log('  ❌ erro HTTP:', e.message); }
+      srv.close(function () { resolve(); });
+    });
+  });
+}
+
+// ------------------------------------------------ endurecimento (auth/rate) -
+function reqAuth(port, method, path, bodyObj, token) {
+  return new Promise(function (resolve, reject) {
+    var data = bodyObj ? JSON.stringify(bodyObj) : null;
+    var headers = { 'Content-Type': 'application/json' };
+    if (token) headers['Authorization'] = 'Bearer ' + token;
+    var r = http.request({ host: '127.0.0.1', port: port, method: method, path: path, headers: headers }, function (res) {
+      var buf = ''; res.on('data', function (c) { buf += c; });
+      res.on('end', function () { resolve({ status: res.statusCode, body: buf ? JSON.parse(buf) : null }); });
+    });
+    r.on('error', reject); if (data) r.write(data); r.end();
+  });
+}
+
+function testHardening() {
+  return new Promise(function (resolve) {
+    console.log('== Endurecimento (auth admin + rate-limit SMS) ==');
+    var srv = server.buildServer({ adminToken: 'segredo-admin' });
+    srv.listen(0, async function () {
+      var port = srv.address().port;
+      try {
+        // rota de admin exige token
+        var noTok = await reqAuth(port, 'POST', '/api/blacklist', { valor: '555.555.555-55' });
+        ok(noTok.status === 401 && noTok.body.reason === 'unauthorized', 'blacklist sem token -> 401');
+        var badTok = await reqAuth(port, 'POST', '/api/blacklist', { valor: '555.555.555-55' }, 'errado');
+        ok(badTok.status === 401, 'blacklist com token errado -> 401');
+        var okTok = await reqAuth(port, 'POST', '/api/blacklist', { valor: '555.555.555-55', motivo: 'x' }, 'segredo-admin');
+        ok(okTok.status === 200 && okTok.body.ok, 'blacklist com token válido -> 200');
+        // login continua público
+        var pub = await reqAuth(port, 'POST', '/api/login', { cpf: '555.555.555-55', mac: 'Z' });
+        ok(pub.status === 403 && pub.body.reason === 'blacklist', 'login (público) respeita o bloqueio recém-criado');
+
+        // rate-limit de SMS: 4º envio rápido é barrado (cooldown/limite)
+        var cpf = '123.456.789-00';
+        var r1 = await reqAuth(port, 'POST', '/api/sms/send', { cpf: cpf });
+        ok(r1.status === 200, '1º SMS -> 200');
+        var r2 = await reqAuth(port, 'POST', '/api/sms/send', { cpf: cpf });
+        ok(r2.status === 429 && r2.body.reason === 'rate_limited', '2º SMS imediato -> 429 (cooldown)');
+        ok(typeof r2.body.retryAfterMs === 'number', '429 traz retryAfterMs');
+      } catch (e) { fail++; console.log('  ❌ erro:', e.message); }
       srv.close(function () { resolve(); });
     });
   });
@@ -108,6 +157,7 @@ function testHttp() {
 (async function () {
   await testLogic();
   await testHttp();
+  await testHardening();
   console.log('\nResultado: ' + pass + ' PASS / ' + fail + ' FAIL');
   process.exit(fail === 0 ? 0 : 1);
 })();

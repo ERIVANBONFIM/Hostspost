@@ -8,10 +8,13 @@
   'use strict';
   var ls = root.localStorage;
   var BASE = (ls && ls.getItem('hostspost.apiBase')) || 'http://localhost:3000';
+  var TOKEN = (ls && ls.getItem('hostspost.adminToken')) || null; // usado nas rotas de admin
 
   async function call(method, path, body) {
     try {
-      var opts = { method: method, headers: { 'Content-Type': 'application/json' } };
+      var headers = { 'Content-Type': 'application/json' };
+      if (TOKEN) headers['Authorization'] = 'Bearer ' + TOKEN;
+      var opts = { method: method, headers: headers };
       if (body) opts.body = JSON.stringify(body);
       var res = await fetch(BASE + path, opts);
       var data = {};
@@ -25,6 +28,7 @@
   var API = {
     getBase: function () { return BASE; },
     setBase: function (b) { BASE = b; if (ls) ls.setItem('hostspost.apiBase', b); },
+    setToken: function (t) { TOKEN = t; if (ls) { t ? ls.setItem('hostspost.adminToken', t) : ls.removeItem('hostspost.adminToken'); } },
     health: function () { return call('GET', '/api/health'); },
     status: function () { return call('GET', '/api/status'); },
     smsSend: function (cpf) { return call('POST', '/api/sms/send', { cpf: cpf }); },

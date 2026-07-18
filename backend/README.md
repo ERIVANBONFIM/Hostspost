@@ -13,31 +13,45 @@ credencial no **radcheck** e abre a sessão no **radacct**.
 
 ```bash
 cd backend
-node server.js                 # http://localhost:3000 (store em memória)
-PORT=8081 DEVICE_LIMIT=2 node server.js
+node server.js                                   # http://localhost:3000 (store em memória)
+PORT=8081 DEVICE_LIMIT=2 ADMIN_TOKEN=segredo node server.js
 ```
+
+Sem `ADMIN_TOKEN`, o servidor sobe em **modo dev** (rotas de admin abertas) e avisa no
+console. Em produção, **sempre** defina `ADMIN_TOKEN`.
 
 ## Testar
 
 ```bash
-node test.js     # 24 testes: lógica + servidor HTTP real em localhost
+node test.js     # 33 testes: lógica + HTTP real + auth admin + rate-limit + métricas
 ```
 
 ## Endpoints
 
-| Método | Rota | Corpo | Resposta |
-|--------|------|-------|----------|
-| GET | `/api/health` | — | `{ ok }` |
-| GET | `/api/status` | — | `{ deviceLimit, activeSessions, blacklist }` |
-| POST | `/api/sms/send` | `{ cpf }` | `{ ok, mockCode }` (mock devolve o código) |
-| POST | `/api/sms/verify` | `{ cpf, code }` | `200 { ok }` ou `401` |
-| POST | `/api/login` | `{ cpf, mac, enforceLimit? }` | `200 { credential }` ou `403 { reason }` |
-| POST | `/api/login/google` | `{ cpf, mac }` | idem login |
-| POST | `/api/logout` | `{ cpf, mac? }` | `{ ok, stopped }` |
-| POST | `/api/blacklist` | `{ valor, motivo }` | `{ ok }` |
-| DELETE | `/api/blacklist` | `{ valor }` | `{ ok }` |
+| Método | Rota | Auth | Corpo | Resposta |
+|--------|------|------|-------|----------|
+| GET | `/api/health` | — | — | `{ ok }` |
+| GET | `/api/status` | — | — | `{ deviceLimit, activeSessions, blacklist }` |
+| GET | `/api/metrics` | — | — | `{ requests, byStatus, byRoute, uptimeMs }` |
+| POST | `/api/sms/send` | — | `{ cpf }` | `{ ok, mockCode }` ou `429 { reason:'rate_limited', retryAfterMs }` |
+| POST | `/api/sms/verify` | — | `{ cpf, code }` | `200 { ok }` ou `401` |
+| POST | `/api/login` | — | `{ cpf, mac, enforceLimit? }` | `200 { credential }` ou `403 { reason }` |
+| POST | `/api/login/google` | — | `{ cpf, mac }` | idem login |
+| POST | `/api/logout` | — | `{ cpf, mac? }` | `{ ok, stopped }` |
+| POST | `/api/blacklist` | **Bearer** | `{ valor, motivo }` | `{ ok }` ou `401` |
+| DELETE | `/api/blacklist` | **Bearer** | `{ valor }` | `{ ok }` ou `401` |
 
-`reason` possíveis no login: `blacklist`, `device_limit`, `cpf_invalido`.
+`reason` no login: `blacklist`, `device_limit`, `cpf_invalido`. No SMS: `rate_limited`,
+`cpf_invalido`.
+
+### Autenticação de admin
+Rotas de admin exigem `Authorization: Bearer <ADMIN_TOKEN>` (quando o token está definido).
+No app, use `HostspostAPI.setToken('<token>')` ou defina
+`localStorage.hostspost.adminToken` — o cliente envia o header automaticamente.
+
+### Rate-limit de SMS
+Por CPF: intervalo mínimo entre envios (30s) e máximo por janela (3 / 10 min).
+Configurável em `createService(store, { smsMax, smsWindowMs, smsCooldownMs })`.
 
 ### Exemplo (curl)
 
@@ -83,6 +97,9 @@ retornar Promise — o serviço usa `await` em todos.
 
 ## Escopo
 
-- Referência funcional e testável; **não** é um produto endurecido. Falta, para produção:
-  rate-limiting/anti-abuso no envio de SMS, autenticação de administrador nas rotas de
-  blacklist, TLS/HTTPS, integração real do gateway SMS e do OAuth Google, e observabilidade.
+Referência funcional e testável. **Já endurecido:** autenticação de admin (Bearer),
+rate-limit de SMS por CPF, métricas (`/api/metrics`), logging de requisições e tratamento
+de erro (400/401/403/429/500). **Falta, para produção:** TLS/HTTPS (terminar num proxy
+reverso), integração real do gateway SMS e do OAuth Google, persistência do rate-limit
+compartilhada entre instâncias (ex.: Redis) e uso do adaptador MySQL no lugar do store em
+memória.

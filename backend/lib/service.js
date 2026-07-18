@@ -17,6 +17,26 @@ function createService(store, opts) {
   opts = opts || {};
   var CODE_TTL = opts.codeTtlMs || 5 * 60 * 1000; // 5 min
   var DEVICE_LIMIT = opts.deviceLimit || 2;
+  // anti-abuso do envio de SMS (por CPF, em memória do processo)
+  var SMS_MAX = opts.smsMax || 3;                 // máx. envios por janela
+  var SMS_WINDOW = opts.smsWindowMs || 10 * 60 * 1000;
+  var SMS_COOLDOWN = opts.smsCooldownMs || 30 * 1000; // intervalo mínimo entre envios
+  var smsHits = new Map();                         // cpf -> [timestamps]
+
+  function checkSmsRate(cpf) {
+    var arr = (smsHits.get(cpf) || []).filter(function (t) { return Date.now() - t < SMS_WINDOW; });
+    smsHits.set(cpf, arr);
+    if (arr.length) {
+      var since = Date.now() - arr[arr.length - 1];
+      if (since < SMS_COOLDOWN) return { ok: false, retryAfterMs: SMS_COOLDOWN - since };
+    }
+    if (arr.length >= SMS_MAX) {
+      var oldest = arr[0];
+      return { ok: false, retryAfterMs: SMS_WINDOW - (Date.now() - oldest) };
+    }
+    return { ok: true };
+  }
+  function recordSms(cpf) { var arr = smsHits.get(cpf) || []; arr.push(Date.now()); smsHits.set(cpf, arr); }
 
   function now() { return Date.now(); }
   function token() { return crypto.randomBytes(16).toString('hex'); }
@@ -28,8 +48,14 @@ function createService(store, opts) {
     /** Envia (mock) um código SMS de 4 dígitos para o CPF. */
     sendSms: async function (cpf) {
       if (!validCpf(cpf)) return { ok: false, reason: 'cpf_invalido' };
+      var rl = checkSmsRate(cpf);
+      if (!rl.ok) {
+        await store.log('SMS', 'Envio bloqueado por rate-limit: ' + cpf);
+        return { ok: false, reason: 'rate_limited', retryAfterMs: rl.retryAfterMs };
+      }
       var code = code4();
       await store.putCode(cpf, { code: code, exp: now() + CODE_TTL });
+      recordSms(cpf);
       await store.log('SMS', 'Código enviado para ' + cpf);
       // Em produção, aqui chama o gateway SMS. No mock devolvemos o código.
       return { ok: true, expiresInMs: CODE_TTL, mockCode: code };
