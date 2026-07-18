@@ -5,15 +5,26 @@ pacientes e acompanhantes em ambiente hospitalar, com autenticação por CPF, ve
 por SMS, login social, controle de banda, filtro de conteúdo e conformidade com **LGPD**
 e **Marco Civil da Internet**.
 
-Este repositório contém a **documentação técnica de implantação em produção** usando:
+Este repositório contém:
+
+- **[`app/`](app/)** — a maquete front-end da **Versão 2**: portal do visitante + painel
+  administrativo (demo funcional em HTML/CSS/JS, sem back-end).
+- **[`docs/`](docs/)** — a **documentação técnica de implantação em produção**.
+- **[`lab/`](lab/)** — o **kit de homologação** para validar as configs.
+
+Infraestrutura de referência:
 
 - **MikroTik (RouterOS)** — gateway de rede e servidor de *hotspot*.
 - **FreeRADIUS** — servidor AAA (autenticação, autorização e *accounting*).
 
-> **Escopo deste repositório:** apenas a documentação de infraestrutura/implantação.
-> O código do portal e do painel administrativo (front-end/back-end) **não** faz parte
-> desta entrega — a documentação descreve a camada de rede e AAA que sustenta esses
-> recursos.
+## App — Versão 2 (demo)
+
+Portal do visitante e painel admin com estado compartilhado (os toggles do Admin
+refletem no Portal em tempo real). Veja [`app/README.md`](app/README.md).
+
+```bash
+cd app && python3 -m http.server 8080   # abra http://localhost:8080
+```
 
 ## Documentação
 

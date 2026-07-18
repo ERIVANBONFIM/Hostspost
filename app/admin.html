@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Painel Admin | Hostspost</title>
+  <link rel="stylesheet" href="css/styles.css" />
+</head>
+<body>
+  <header class="appbar">
+    <div class="inner">
+      <div class="brand-logo"><span class="dot">✚</span> Hostspost <span class="badge brand small">Admin</span></div>
+      <div class="row">
+        <span class="badge ok" title="Autenticação em dois fatores ativa">🔐 2FA ativo</span>
+        <a class="btn ghost small" href="portal.html">Abrir Portal ↗</a>
+      </div>
+    </div>
+  </header>
+
+  <main class="container">
+    <div class="tabs" id="tabs"></div>
+
+    <!-- Dashboard -->
+    <section data-tab="dashboard">
+      <div class="stats" id="stats" style="margin-bottom:18px"></div>
+      <div class="grid" style="grid-template-columns:1fr; gap:16px">
+        <div class="card">
+          <div class="card-head"><h2>🚨 Alertas automáticos</h2><span class="badge muted" id="alerts-count"></span></div>
+          <div id="alerts-list"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Configurações do Portal -->
+    <section data-tab="config" hidden>
+      <div class="card">
+        <div class="card-head">
+          <div><h2 class="mb-0">🎛️ Configurações do Portal</h2>
+          <p class="muted small mb-0">Ligue/desligue recursos do portal do usuário. A mudança vale na hora e vira evento CONFIG no log.</p></div>
+        </div>
+        <div id="config-list" class="grid" style="grid-template-columns:repeat(auto-fit,minmax(280px,1fr))"></div>
+      </div>
+    </section>
+
+    <!-- Usuários -->
+    <section data-tab="users" hidden>
+      <div class="card">
+        <div class="card-head"><h2 class="mb-0">👥 Usuários & dispositivos</h2></div>
+        <div class="table-wrap"><table id="users-table">
+          <thead><tr><th>Nome</th><th>CPF</th><th>Setor</th><th>Dispositivos</th><th>Status</th><th></th></tr></thead>
+          <tbody></tbody>
+        </table></div>
+      </div>
+    </section>
+
+    <!-- Lista negra -->
+    <section data-tab="blacklist" hidden>
+      <div class="card">
+        <div class="card-head"><h2 class="mb-0">⛔ Lista negra (MAC / CPF)</h2></div>
+        <div class="row" style="margin-bottom:14px">
+          <select id="bl-tipo" style="padding:10px;border:1px solid var(--line);border-radius:9px"><option value="cpf">CPF</option><option value="mac">MAC</option></select>
+          <input id="bl-valor" placeholder="valor (CPF ou MAC)" style="flex:1;min-width:180px;padding:10px;border:1px solid var(--line);border-radius:9px" />
+          <input id="bl-motivo" placeholder="motivo (opcional)" style="flex:1;min-width:160px;padding:10px;border:1px solid var(--line);border-radius:9px" />
+          <button class="btn" id="bl-add">Adicionar</button>
+        </div>
+        <div class="table-wrap"><table id="bl-table">
+          <thead><tr><th>Tipo</th><th>Valor</th><th>Motivo</th><th>Quando</th><th></th></tr></thead>
+          <tbody></tbody>
+        </table></div>
+      </div>
+    </section>
+
+    <!-- Filtro de conteúdo -->
+    <section data-tab="filter" hidden>
+      <div class="card">
+        <div class="card-head"><h2 class="mb-0">🛡️ Filtro de conteúdo por categoria</h2></div>
+        <div id="filter-list" class="grid" style="grid-template-columns:repeat(auto-fit,minmax(240px,1fr))"></div>
+      </div>
+    </section>
+
+    <!-- Agendamento de banda -->
+    <section data-tab="band" hidden>
+      <div class="card">
+        <div class="card-head"><h2 class="mb-0">⏰ Agendamento de banda por horário</h2></div>
+        <div class="table-wrap"><table id="band-table">
+          <thead><tr><th>Perfil</th><th>Início</th><th>Fim</th><th>Limite (rx/tx)</th></tr></thead>
+          <tbody></tbody>
+        </table></div>
+        <p class="muted small" style="margin-top:10px">Em produção, aplicado via <code>Mikrotik-Rate-Limit</code> + CoA (ver docs/05).</p>
+      </div>
+    </section>
+
+    <!-- Relatório -->
+    <section data-tab="report" hidden>
+      <div class="card">
+        <div class="card-head"><h2 class="mb-0">📊 Relatório mensal</h2><button class="btn small" id="btn-export">⬇️ Exportar CSV</button></div>
+        <div class="stats" id="report-stats"></div>
+        <hr class="divider" />
+        <h3 class="small" style="text-transform:uppercase;letter-spacing:.04em;color:var(--muted)">Setor mais ativo</h3>
+        <div id="report-setores"></div>
+      </div>
+    </section>
+
+    <!-- Segurança & LGPD -->
+    <section data-tab="security" hidden>
+      <div class="card">
+        <div class="card-head"><h2 class="mb-0">🔐 Segurança & LGPD</h2></div>
+        <div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(240px,1fr))">
+          <div class="card" style="box-shadow:none;background:var(--surface-2)"><span class="badge ok">Ativo</span><h3 class="small" style="margin-top:8px">Autenticação 2FA (admin)</h3><p class="muted small mb-0">TOTP obrigatório no painel.</p></div>
+          <div class="card" style="box-shadow:none;background:var(--surface-2)"><span class="badge ok">Ativo</span><h3 class="small" style="margin-top:8px">Anonimização automática</h3><p class="muted small mb-0">Registros > 12 meses são anonimizados.</p></div>
+          <div class="card" style="box-shadow:none;background:var(--surface-2)"><span class="badge ok">Ativo</span><h3 class="small" style="margin-top:8px">Portal do titular (LGPD)</h3><p class="muted small mb-0">Acesso, correção e eliminação de dados.</p></div>
+          <div class="card" style="box-shadow:none;background:var(--surface-2)"><span class="badge ok">Ativo</span><h3 class="small" style="margin-top:8px">Criptografia em trânsito</h3><p class="muted small mb-0">HTTPS no portal, RADSEC no AAA.</p></div>
+        </div>
+        <hr class="divider" />
+        <h3 class="small" style="text-transform:uppercase;letter-spacing:.04em;color:var(--muted)">Auditoria da auditoria — quem acessou os logs</h3>
+        <div class="table-wrap"><table>
+          <thead><tr><th>Quando</th><th>Operador</th><th>Ação</th></tr></thead>
+          <tbody id="audit-body"></tbody>
+        </table></div>
+      </div>
+    </section>
+
+    <!-- Log de eventos -->
+    <section data-tab="log" hidden>
+      <div class="card">
+        <div class="card-head"><h2 class="mb-0">🧾 Log de eventos</h2><span class="badge muted" id="log-count"></span></div>
+        <div class="table-wrap"><table>
+          <thead><tr><th>Quando</th><th>Tipo</th><th>Evento</th><th>Ator</th></tr></thead>
+          <tbody id="log-body"></tbody>
+        </table></div>
+      </div>
+    </section>
+  </main>
+
+  <script src="js/store.js"></script>
+  <script src="js/admin.js"></script>
+</body>
+</html>

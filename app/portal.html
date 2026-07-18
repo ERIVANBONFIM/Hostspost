@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Wi-Fi Hospital — Portal do Visitante | Hostspost</title>
+  <link rel="stylesheet" href="css/styles.css" />
+</head>
+<body>
+  <div class="portal-wrap">
+    <div class="card portal-card">
+      <div class="brand-logo" style="margin-bottom:16px">
+        <span class="dot">✚</span> Hostspost <span class="badge brand small">Wi-Fi Visitantes</span>
+      </div>
+
+      <div class="stepper" id="stepper" aria-hidden="true"></div>
+
+      <!-- Etapa 1: Termo LGPD -->
+      <section id="step-termo">
+        <h2>Bem-vindo(a) à rede do hospital</h2>
+        <p class="muted small">Para usar o Wi-Fi gratuito, leia e aceite o termo de uso e privacidade.</p>
+        <div class="card" style="background:var(--surface-2); max-height:180px; overflow:auto; box-shadow:none">
+          <p class="small" id="termo-texto"></p>
+        </div>
+        <div class="row" style="margin:12px 0">
+          <button class="btn ghost small" id="btn-audio" hidden>🔊 Ouvir o termo</button>
+          <span class="small muted" id="audio-hint" hidden>Leitura em voz alta (acessibilidade)</span>
+        </div>
+        <label class="field" style="font-weight:500; display:flex; gap:10px; align-items:flex-start">
+          <input type="checkbox" id="aceite" style="width:auto; margin-top:3px" />
+          <span class="small">Li e concordo com o tratamento dos meus dados conforme a <strong>LGPD</strong>, para finalidade de acesso à internet e guarda de registros de conexão por 12 meses (Marco Civil).</span>
+        </label>
+        <button class="btn block" id="btn-termo" disabled>Continuar</button>
+      </section>
+
+      <!-- Etapa 2: CPF -->
+      <section id="step-cpf" hidden>
+        <h2>Identifique-se</h2>
+        <p class="muted small">Informe seu CPF para liberar o acesso.</p>
+        <label class="field">CPF
+          <input id="cpf" inputmode="numeric" placeholder="000.000.000-00" autocomplete="off" />
+        </label>
+        <div id="cpf-erro" class="badge danger" hidden></div>
+        <button class="btn block" id="btn-cpf" style="margin-top:8px">Avançar</button>
+        <div id="google-wrap" hidden style="margin-top:14px">
+          <div class="row" style="justify-content:center"><span class="small muted">ou</span></div>
+          <button class="google-btn" id="btn-google"><span class="g">G</span> Entrar com Google</button>
+        </div>
+      </section>
+
+      <!-- Etapa 3: Código SMS -->
+      <section id="step-sms" hidden>
+        <h2>Verificação por SMS</h2>
+        <p class="muted small">Enviamos um código de 4 dígitos por SMS. <br>(Demo: use o código <strong id="sms-demo"></strong>)</p>
+        <div class="code-inputs" id="code-inputs">
+          <input maxlength="1" inputmode="numeric" aria-label="dígito 1" />
+          <input maxlength="1" inputmode="numeric" aria-label="dígito 2" />
+          <input maxlength="1" inputmode="numeric" aria-label="dígito 3" />
+          <input maxlength="1" inputmode="numeric" aria-label="dígito 4" />
+        </div>
+        <div id="sms-erro" class="badge danger center" hidden style="margin:6px auto"></div>
+        <button class="btn block" id="btn-sms" style="margin-top:12px">Confirmar código</button>
+      </section>
+
+      <!-- Etapa 4: Conectado -->
+      <section id="step-ok" hidden>
+        <div class="center" style="margin-bottom:8px">
+          <div style="font-size:2.6rem">✅</div>
+          <h2 class="mb-0">Conectado!</h2>
+          <p class="muted small">Você já está navegando na internet do hospital.</p>
+        </div>
+
+        <div class="banner" id="banner" hidden>
+          <strong>💉 Campanha de Vacinação</strong>
+          <div class="small">Atualize sua carteira de vacinação na sala 12, térreo. Segunda a sexta, 8h–17h.</div>
+        </div>
+
+        <div class="card" id="notices" hidden style="box-shadow:none; background:var(--surface-2)">
+          <h3 class="small" style="text-transform:uppercase; letter-spacing:.04em; color:var(--muted)">Avisos do hospital</h3>
+          <div class="notice small"><strong>Visitas:</strong> 14h–20h, até 2 acompanhantes por leito.</div>
+          <div class="notice small"><strong>Refeitório:</strong> almoço 11h–14h · jantar 18h–20h.</div>
+          <div class="notice small"><strong>Farmácia:</strong> 24h no térreo, ala B.</div>
+          <div class="notice small"><strong>Ramais:</strong> Recepção 2000 · Enfermagem 2100 · Ouvidoria 2222.</div>
+        </div>
+
+        <div class="card" id="nps" hidden style="box-shadow:none">
+          <h3 class="small mb-0">De 0 a 10, o quanto você recomendaria nosso Wi-Fi?</h3>
+          <p class="muted small">Sua opinião ajuda a melhorar o serviço.</p>
+          <div class="nps-scale" id="nps-scale"></div>
+          <div id="nps-thanks" class="badge ok" hidden>Obrigado pela avaliação! 💙</div>
+        </div>
+
+        <p class="small muted center" id="reconnect-note" hidden style="margin-top:12px">
+          🔓 Seu dispositivo será reconhecido automaticamente por <strong>30 dias</strong> — sem novo login.
+        </p>
+      </section>
+    </div>
+  </div>
+
+  <a href="admin.html" class="small muted" style="position:fixed; bottom:10px; right:14px">Painel Admin →</a>
+  <script src="js/store.js"></script>
+  <script src="js/portal.js"></script>
+</body>
+</html>
