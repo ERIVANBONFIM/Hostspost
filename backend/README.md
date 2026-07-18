@@ -36,6 +36,7 @@ node test.js     # 33 testes: lógica + HTTP real + auth admin + rate-limit + m�
 | POST | `/api/sms/send` | — | `{ cpf }` | `{ ok, mockCode }` ou `429 { reason:'rate_limited', retryAfterMs }` |
 | POST | `/api/sms/verify` | — | `{ cpf, code }` | `200 { ok }` ou `401` |
 | POST | `/api/login` | — | `{ cpf, mac, enforceLimit? }` | `200 { credential }` ou `403 { reason }` |
+| POST | `/api/register` | — | `{ cpf, mac, profile }` | `200 { credential }` (grava o perfil) ou `403 { reason }` |
 | POST | `/api/login/google` | — | `{ cpf, mac }` | idem login |
 | POST | `/api/logout` | — | `{ cpf, mac? }` | `{ ok, stopped }` |
 | POST | `/api/blacklist` | **Bearer** | `{ valor, motivo }` | `{ ok }` ou `401` |

@@ -21,14 +21,27 @@
         deviceLimit2: true,      // limite de 2 dispositivos por CPF
         lgpdAudio: true          // termo LGPD em áudio (TTS)
       },
+      // Campos do cadastro — o admin escolhe quais aparecem e quais são obrigatórios.
+      // 'locked' impede desativar campos essenciais (identidade).
+      regFields: [
+        { key: 'nome',          label: 'Nome completo',      type: 'text',   on: true,  required: true,  locked: true },
+        { key: 'cpf',           label: 'CPF',                type: 'cpf',    on: true,  required: true,  locked: true },
+        { key: 'telefone',      label: 'Celular',            type: 'tel',    on: true,  required: true },
+        { key: 'email',         label: 'E-mail',             type: 'email',  on: false, required: false },
+        { key: 'nascimento',    label: 'Data de nascimento', type: 'date',   on: false, required: false },
+        { key: 'leito',         label: 'Leito / Quarto',     type: 'text',   on: false, required: false },
+        { key: 'paciente',      label: 'Paciente visitado',  type: 'text',   on: false, required: false },
+        { key: 'tipoVisitante', label: 'Tipo de visitante',  type: 'select', on: false, required: false, options: ['Acompanhante', 'Visitante', 'Paciente', 'Colaborador', 'Terceirizado'] },
+        { key: 'setor',         label: 'Setor',              type: 'select', on: false, required: false, options: ['Recepção', 'Ambulatório', 'Internação', 'Refeitório', 'Farmácia', 'UTI', 'Pediatria'] }
+      ],
       users: [
-        { cpf: '123.456.789-00', nome: 'Maria Souza',   setor: 'Recepção',   status: 'ativo',     dispositivos: [{ mac: 'AA:BB:CC:00:00:01', ts: Date.now() - 8.64e7 }] },
-        { cpf: '987.654.321-00', nome: 'João Pereira',  setor: 'Ambulatório', status: 'ativo',     dispositivos: [{ mac: 'AA:BB:CC:00:00:02', ts: Date.now() - 3.6e6 }, { mac: 'AA:BB:CC:00:00:03', ts: Date.now() - 1.8e6 }] },
-        { cpf: '111.222.333-44', nome: 'Ana Lima',      setor: 'Internação',  status: 'ativo',     dispositivos: [{ mac: 'AA:BB:CC:00:00:04', ts: Date.now() - 6e5 }] },
-        { cpf: '999.999.999-99', nome: 'Visitante Bloq.', setor: '—',         status: 'bloqueado', dispositivos: [] }
+        { cpf: '111.444.777-35', nome: 'Maria Souza',   setor: 'Recepção',   status: 'ativo',     dispositivos: [{ mac: 'AA:BB:CC:00:00:01', ts: Date.now() - 8.64e7 }] },
+        { cpf: '529.982.247-25', nome: 'João Pereira',  setor: 'Ambulatório', status: 'ativo',     dispositivos: [{ mac: 'AA:BB:CC:00:00:02', ts: Date.now() - 3.6e6 }, { mac: 'AA:BB:CC:00:00:03', ts: Date.now() - 1.8e6 }] },
+        { cpf: '168.995.350-09', nome: 'Ana Lima',      setor: 'Internação',  status: 'ativo',     dispositivos: [{ mac: 'AA:BB:CC:00:00:04', ts: Date.now() - 6e5 }] },
+        { cpf: '390.533.447-05', nome: 'Visitante Bloq.', setor: '—',         status: 'bloqueado', dispositivos: [] }
       ],
       blacklist: [
-        { tipo: 'cpf', valor: '999.999.999-99', motivo: 'Uso indevido reportado', ts: Date.now() - 1.5e8 }
+        { tipo: 'cpf', valor: '390.533.447-05', motivo: 'Uso indevido reportado', ts: Date.now() - 1.5e8 }
       ],
       contentFilters: [
         { categoria: 'Conteúdo adulto', ativo: true },
@@ -45,7 +58,7 @@
       sessions: seedSessions(),
       nps: [ { nota: 9, ts: Date.now() - 8.64e7 }, { nota: 8, ts: Date.now() - 4.3e7 }, { nota: 10, ts: Date.now() - 2e7 } ],
       alerts: [
-        { tipo: 'consumo', nivel: 'alto',  msg: 'Consumo elevado: CPF 987.654.321-00 passou de 12 GB em 24h', ts: Date.now() - 3.6e6 },
+        { tipo: 'consumo', nivel: 'alto',  msg: 'Consumo elevado: CPF 529.982.247-25 passou de 12 GB em 24h', ts: Date.now() - 3.6e6 },
         { tipo: 'invasao', nivel: 'medio', msg: 'Tentativa de invasão bloqueada: 14 rejeições do MAC AA:BB:CC:00:00:09', ts: Date.now() - 1.8e6 },
         { tipo: 'pico',    nivel: 'baixo', msg: 'Pico de conexões: 128 sessões simultâneas às 12h05', ts: Date.now() - 9e5 }
       ],
@@ -61,7 +74,7 @@
     for (var i = 0; i < 40; i++) {
       var dur = 300 + Math.floor(rng(i) * 5400);
       out.push({
-        cpf: ['123.456.789-00', '987.654.321-00', '111.222.333-44'][i % 3],
+        cpf: ['111.444.777-35', '529.982.247-25', '168.995.350-09'][i % 3],
         mac: 'AA:BB:CC:00:0' + (i % 9) + ':' + (10 + i),
         setor: setores[i % setores.length],
         inicio: Date.now() - (i + 1) * 3.6e6,
@@ -151,6 +164,19 @@
     },
 
     findUser: function (cpf) { return state.users.find(function (u) { return u.cpf === cpf; }); },
+
+    // ---- campos configuráveis do cadastro ----
+    getRegFields: function () { return state.regFields; },
+    setRegField: function (key, prop, val) {
+      var f = state.regFields.find(function (x) { return x.key === key; });
+      if (!f) return;
+      if (f.locked && prop === 'on') return;                 // campos essenciais não desligam
+      if (prop === 'on' && !val) f.required = false;         // campo oculto não pode ser obrigatório
+      f[prop] = val;
+      this.log('CONFIG', 'Campo de cadastro "' + f.label + '" — ' +
+        (prop === 'on' ? (val ? 'EXIBIDO' : 'OCULTADO') : ('obrigatório: ' + (val ? 'sim' : 'não'))), 'admin');
+      save();
+    },
 
     reset: function () { state = seed(); save(); }
   };

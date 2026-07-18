@@ -44,6 +44,10 @@ function ok(c, m) { if (c) { pass++; console.log('  ✅', m); } else { fail++; c
       await API.blacklistRemove(novo);
       ok((await API.login(novo, 'A3')).ok === true, 'após blacklistRemove, login volta');
 
+      // cadastro via api.js (persiste perfil no backend)
+      var reg = await API.register('168.995.350-09', 'RG1', { nome: 'Ana', telefone: '(11) 98888-0000', email: 'ana@ex.com' });
+      ok(reg.ok === true && reg.credential.username === '168.995.350-09', 'api.js register() persiste e libera');
+
       // offline: base inválida -> reason offline (app cai no modo demo)
       API.setBase('http://127.0.0.1:1');
       var off = await API.health();

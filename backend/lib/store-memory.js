@@ -11,6 +11,7 @@ function createMemoryStore(seed) {
   var blacklist = new Map();   // valor -> { motivo, ts }
   var sessions = [];           // { username, mac, start, stop }
   var codes = new Map();       // cpf -> { code, exp }
+  var profiles = new Map();    // cpf -> { nome, telefone, ... } (perfil do cadastro)
   var events = [];             // { tipo, msg, ts }
 
   if (seed && Array.isArray(seed.blacklist)) {
@@ -51,6 +52,10 @@ function createMemoryStore(seed) {
     },
     removeBlacklist: function (valor) { blacklist.delete(valor); },
     blacklistCount: function () { return blacklist.size; },
+
+    // ---- perfil do cadastro ----
+    saveProfile: function (cpf, profile) { profiles.set(cpf, profile || {}); },
+    getProfile: function (cpf) { return profiles.get(cpf) || null; },
 
     // ---- códigos SMS ----
     putCode: function (cpf, rec) { codes.set(cpf, rec); },

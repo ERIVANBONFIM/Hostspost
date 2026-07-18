@@ -50,6 +50,14 @@ async function testLogic() {
 
   // CPF inválido
   ok((await s.login({ cpf: '123' })).reason === 'cpf_invalido', 'CPF inválido rejeitado');
+
+  // cadastro (register) persiste o perfil
+  var cpf2 = '111.444.777-35';
+  var reg = await s.register({ cpf: cpf2, mac: 'R1', profile: { nome: 'Maria', telefone: '(11) 99999-0000', setor: 'UTI' } });
+  ok(reg.ok && reg.credential.username === cpf2, 'register libera acesso e retorna credencial');
+  ok(store.getProfile(cpf2) && store.getProfile(cpf2).nome === 'Maria', 'register persistiu o perfil');
+  await s.blacklistAdd(cpf2, 'x');
+  ok((await s.register({ cpf: cpf2, mac: 'R2', profile: {} })).reason === 'blacklist', 'register barra CPF na lista negra');
 }
 
 // --------------------------------------------------------------- HTTP -------

@@ -33,13 +33,11 @@
         <button class="btn block" id="btn-termo" disabled>Continuar</button>
       </section>
 
-      <!-- Etapa 2: CPF -->
+      <!-- Etapa 2: Cadastro (campos dinâmicos conforme Admin → Configurações de Cadastro) -->
       <section id="step-cpf" hidden>
-        <h2>Identifique-se</h2>
-        <p class="muted small">Informe seu CPF para liberar o acesso.</p>
-        <label class="field">CPF
-          <input id="cpf" inputmode="numeric" placeholder="000.000.000-00" autocomplete="off" />
-        </label>
+        <h2>Cadastro</h2>
+        <p class="muted small">Informe seus dados para liberar o acesso.</p>
+        <div id="cad-fields"></div>
         <div id="cpf-erro" class="badge danger" hidden></div>
         <button class="btn block" id="btn-cpf" style="margin-top:8px">Avançar</button>
         <div id="google-wrap" hidden style="margin-top:14px">

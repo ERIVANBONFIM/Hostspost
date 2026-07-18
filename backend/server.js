@@ -79,6 +79,7 @@ function createServer(service, opts) {
     if (req.method === 'POST' && url === '/api/sms/send') return body(h(async function (b) { var r = await service.sendSms(b.cpf); send(statusFor(r), r); }));
     if (req.method === 'POST' && url === '/api/sms/verify') return body(h(async function (b) { var r = await service.verifySms(b.cpf, b.code); send(statusFor(r), r); }));
     if (req.method === 'POST' && url === '/api/login') return body(h(async function (b) { var r = await service.login(b); send(statusFor(r), r); }));
+    if (req.method === 'POST' && url === '/api/register') return body(h(async function (b) { var r = await service.register(b); send(statusFor(r), r); }));
     if (req.method === 'POST' && url === '/api/login/google') return body(h(async function (b) { var r = await service.loginGoogle(b); send(statusFor(r), r); }));
     if (req.method === 'POST' && url === '/api/logout') return body(h(async function (b) { send(200, await service.logout(b.cpf, b.mac)); }));
 

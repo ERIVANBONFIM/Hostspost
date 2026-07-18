@@ -102,6 +102,17 @@ function createService(store, opts) {
       return { ok: true, credential: { username: cpf, password: pass } };
     },
 
+    /** Cadastro: valida, libera o acesso (blacklist/limite) e persiste o perfil. */
+    register: async function (params) {
+      params = params || {};
+      var r = await this.login(params);
+      if (r.ok) {
+        await store.saveProfile(params.cpf, params.profile || {});
+        await store.log('CADASTRO', 'Cadastro salvo: ' + params.cpf);
+      }
+      return r;
+    },
+
     /** Login social: identidade vem do provedor; associa a um CPF já informado. */
     loginGoogle: async function (params) {
       params = params || {};

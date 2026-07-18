@@ -14,7 +14,7 @@
     'de Dados (LGPD) e não são compartilhados para fins de marketing. Você pode solicitar acesso, ' +
     'correção ou eliminação dos seus dados pelo canal de atendimento do titular.';
 
-  var ctx = { cpf: null, code: null, apiSms: false };
+  var ctx = { cpf: null, nome: null, tel: null, profile: null, code: null, apiSms: false };
   var api = { up: false };
 
   // Detecta o backend de integração; se online, o portal usa a API real.
@@ -77,19 +77,52 @@
   $('#aceite').addEventListener('change', function (e) { $('#btn-termo').disabled = !e.target.checked; });
   $('#btn-termo').addEventListener('click', function () {
     window.Store.logAndSave('LGPD', 'Termo aceito por visitante (versão 2, com áudio ' + (cfg('lgpdAudio') ? 'on' : 'off') + ')', 'visitante');
+    renderCadastro();
     show('cpf');
   });
 
-  // ---- Etapa 2: CPF ------------------------------------------------------
-  var cpfEl = $('#cpf');
-  cpfEl.addEventListener('input', function () {
-    var d = cpfEl.value.replace(/\D/g, '').slice(0, 11);
-    var out = d;
-    if (d.length > 9) out = d.replace(/(\d{3})(\d{3})(\d{3})(\d{0,2})/, '$1.$2.$3-$4');
-    else if (d.length > 6) out = d.replace(/(\d{3})(\d{3})(\d{0,3})/, '$1.$2.$3');
-    else if (d.length > 3) out = d.replace(/(\d{3})(\d{0,3})/, '$1.$2');
-    cpfEl.value = out;
-  });
+  // ---- Etapa 2: Cadastro (campos dinâmicos) ------------------------------
+  function digits(s) { return String(s || '').replace(/\D/g, ''); }
+  function cpfValido(cpf) {
+    var c = digits(cpf); if (c.length !== 11 || /^(\d)\1{10}$/.test(c)) return false;
+    var s = 0, i, d;
+    for (i = 0; i < 9; i++) s += +c[i] * (10 - i); d = (s * 10) % 11 % 10; if (d !== +c[9]) return false;
+    s = 0; for (i = 0; i < 10; i++) s += +c[i] * (11 - i); d = (s * 10) % 11 % 10; return d === +c[10];
+  }
+  function maskCpf(v) {
+    var d = digits(v).slice(0, 11);
+    if (d.length > 9) return d.replace(/(\d{3})(\d{3})(\d{3})(\d{0,2})/, '$1.$2.$3-$4');
+    if (d.length > 6) return d.replace(/(\d{3})(\d{3})(\d{0,3})/, '$1.$2.$3');
+    if (d.length > 3) return d.replace(/(\d{3})(\d{0,3})/, '$1.$2');
+    return d;
+  }
+  function maskTel(v) {
+    var d = digits(v).slice(0, 11);
+    if (d.length > 10) return d.replace(/(\d{2})(\d{5})(\d{0,4})/, '($1) $2-$3');
+    if (d.length > 6) return d.replace(/(\d{2})(\d{4})(\d{0,4})/, '($1) $2-$3');
+    if (d.length > 2) return d.replace(/(\d{2})(\d{0,5})/, '($1) $2');
+    return d;
+  }
+  function fieldControl(f) {
+    var req = f.required ? ' *' : '';
+    if (f.type === 'select') {
+      var opts = ['<option value="">Selecione…</option>'].concat((f.options || []).map(function (o) { return '<option>' + o + '</option>'; })).join('');
+      return '<label class="field">' + f.label + req + '<select data-k="' + f.key + '">' + opts + '</select></label>';
+    }
+    var t = f.type === 'date' ? 'date' : (f.type === 'email' ? 'email' : 'text');
+    var extra = (f.type === 'cpf' || f.type === 'tel') ? ' inputmode="numeric"' : '';
+    var ph = f.type === 'cpf' ? '000.000.000-00' : f.type === 'tel' ? '(00) 00000-0000' : '';
+    return '<label class="field">' + f.label + req + '<input data-k="' + f.key + '" type="' + t + '"' + extra + ' placeholder="' + ph + '" autocomplete="off"></label>';
+  }
+  function onFields() { return window.Store.getRegFields().filter(function (f) { return f.on; }); }
+  function renderCadastro() {
+    var box = $('#cad-fields'); if (!box) return;
+    box.innerHTML = onFields().map(fieldControl).join('');
+    var cpfIn = box.querySelector('[data-k="cpf"]');
+    if (cpfIn) cpfIn.addEventListener('input', function () { cpfIn.value = maskCpf(cpfIn.value); });
+    var telIn = box.querySelector('[data-k="telefone"]');
+    if (telIn) telIn.addEventListener('input', function () { telIn.value = maskTel(telIn.value); });
+  }
 
   if (cfg('googleLogin')) {
     $('#google-wrap').hidden = false;
@@ -102,28 +135,29 @@
 
   $('#btn-cpf').addEventListener('click', function () {
     var erro = $('#cpf-erro'); erro.hidden = true;
-    var cpf = cpfEl.value.trim();
-    if (cpf.replace(/\D/g, '').length !== 11) { erro.textContent = 'Informe um CPF válido (11 dígitos).'; erro.hidden = false; return; }
-
-    // Bloqueio por lista negra
-    if (window.Store.isBlacklisted(cpf)) {
-      erro.textContent = '⛔ Acesso bloqueado para este CPF. Procure a recepção.';
-      erro.hidden = false;
-      window.Store.logAndSave('BLOQUEIO', 'Tentativa de login de CPF na lista negra: ' + cpf, 'sistema');
-      return;
+    function fail(msg) { erro.textContent = msg; erro.hidden = false; }
+    var box = $('#cad-fields'), fields = onFields(), profile = {};
+    for (var i = 0; i < fields.length; i++) {
+      var f = fields[i], el = box.querySelector('[data-k="' + f.key + '"]'), v = el ? el.value.trim() : '';
+      profile[f.key] = v;
+      if (f.required && !v) return fail(f.label + ' é obrigatório.');
+      if (f.type === 'cpf' && v && !cpfValido(v)) return fail('CPF inválido — confira os dígitos.');
+      if (f.type === 'tel' && v && digits(v).length < 10) return fail('Celular inválido (informe com DDD).');
+      if (f.type === 'email' && v && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(v)) return fail('E-mail inválido.');
     }
-    // Limite de dispositivos
-    if (cfg('deviceLimit2')) {
+    var cpf = profile.cpf || null;
+    if (cpf && window.Store.isBlacklisted(cpf)) {
+      window.Store.logAndSave('BLOQUEIO', 'Tentativa de login de CPF na lista negra: ' + cpf, 'sistema');
+      return fail('⛔ Acesso bloqueado para este CPF. Procure a recepção.');
+    }
+    if (cpf && cfg('deviceLimit2')) {
       var u = window.Store.findUser(cpf);
       if (u && u.dispositivos.length >= 2) {
-        erro.textContent = '📵 Limite de 2 dispositivos por CPF atingido. Desconecte outro aparelho.';
-        erro.hidden = false;
         window.Store.logAndSave('LIMITE', 'Login barrado por limite de dispositivos: ' + cpf, 'sistema');
-        return;
+        return fail('📵 Limite de 2 dispositivos por CPF atingido. Desconecte outro aparelho.');
       }
     }
-    ctx.cpf = cpf;
-
+    ctx.cpf = cpf; ctx.nome = profile.nome || null; ctx.tel = profile.telefone || null; ctx.profile = profile;
     if (cfg('smsVerification')) startSms();
     else connect(false);
   });
@@ -179,7 +213,8 @@
     var mac = 'AA:BB:CC:' + hex2() + ':' + hex2() + ':' + hex2();
     // Com backend e login por CPF, o SERVIDOR decide (lista negra + limite).
     if (api.up && !viaGoogle && cpf && cpf.indexOf('google-') !== 0) {
-      window.HostspostAPI.login(cpf, mac).then(function (r) {
+      // grava o perfil do cadastro e libera o acesso (blacklist/limite no servidor)
+      window.HostspostAPI.register(cpf, mac, ctx.profile || {}).then(function (r) {
         if (r.ok) finishConnect(viaGoogle, mac);
         else rejectLogin(r);
       });
@@ -203,7 +238,9 @@
     var cpf = ctx.cpf;
     if (cpf && cpf.indexOf('google-') !== 0) {
       var u = window.Store.findUser(cpf);
-      if (!u) { u = { cpf: cpf, nome: 'Visitante ' + cpf.slice(-4), setor: 'Recepção', status: 'ativo', dispositivos: [] }; st.users.push(u); }
+      var setor = (ctx.profile && ctx.profile.setor) || 'Recepção';
+      if (!u) { u = { cpf: cpf, nome: ctx.nome || ('Visitante ' + cpf.slice(-4)), setor: setor, status: 'ativo', dispositivos: [], perfil: ctx.profile || {} }; st.users.push(u); }
+      else if (ctx.profile) { u.perfil = ctx.profile; if (ctx.nome) u.nome = ctx.nome; }
       if (u.dispositivos.length < 2 || !cfg('deviceLimit2')) u.dispositivos.push({ mac: mac, ts: Date.now() });
       st.sessions.unshift({ cpf: cpf, mac: mac, setor: u.setor, inicio: Date.now(), fim: null, bytes: 0 });
     }
@@ -243,7 +280,12 @@
   window.addEventListener('hostspost:change', function () {
     if (!$('#step-ok').hidden) return; // já conectado, não mexe
     if (!$('#step-termo').hidden) renderStepper('termo');
-    else if (!$('#step-cpf').hidden) renderStepper('cpf');
+    else if (!$('#step-cpf').hidden) {
+      renderStepper('cpf');
+      // re-renderiza os campos apenas se a lista de campos ativos mudou (evita apagar o que já foi digitado)
+      var box = $('#cad-fields');
+      if (box && onFields().length !== box.querySelectorAll('[data-k]').length) renderCadastro();
+    }
   });
 
   // start

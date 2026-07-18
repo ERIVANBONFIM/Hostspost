@@ -74,6 +74,16 @@ async function createMysqlStore(cfg) {
       return rows[0].c;
     },
 
+    // ---- perfil do cadastro (tabela visitantes) ----
+    saveProfile: async function (cpf, profile) {
+      await q("CREATE TABLE IF NOT EXISTS visitantes (cpf VARCHAR(20) PRIMARY KEY, dados JSON, atualizado_em TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP)");
+      await q("REPLACE INTO visitantes (cpf, dados) VALUES (?, ?)", [cpf, JSON.stringify(profile || {})]);
+    },
+    getProfile: async function (cpf) {
+      var rows = await q("SELECT dados FROM visitantes WHERE cpf=?", [cpf]);
+      return rows.length ? (typeof rows[0].dados === 'string' ? JSON.parse(rows[0].dados) : rows[0].dados) : null;
+    },
+
     // ---- códigos SMS (tabela auxiliar simples) ----
     putCode: async function (cpf, rec) {
       await q("CREATE TABLE IF NOT EXISTS sms_codes (cpf VARCHAR(20) PRIMARY KEY, code VARCHAR(8), exp BIGINT)");

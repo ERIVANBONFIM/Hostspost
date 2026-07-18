@@ -41,6 +41,7 @@
     smsSend: function (cpf) { return call('POST', '/api/sms/send', { cpf: cpf }); },
     smsVerify: function (cpf, code) { return call('POST', '/api/sms/verify', { cpf: cpf, code: code }); },
     login: function (cpf, mac) { return call('POST', '/api/login', { cpf: cpf, mac: mac }); },
+    register: function (cpf, mac, profile) { return call('POST', '/api/register', { cpf: cpf, mac: mac, profile: profile }); },
     loginGoogle: function (cpf, mac) { return call('POST', '/api/login/google', { cpf: cpf, mac: mac }); },
     logout: function (cpf, mac) { return call('POST', '/api/logout', { cpf: cpf, mac: mac }); },
     blacklistAdd: function (valor, motivo) { return call('POST', '/api/blacklist', { valor: valor, motivo: motivo }); },

@@ -35,9 +35,9 @@
   }
 
   var TABS = [
-    ['dashboard', 'Dashboard'], ['config', 'Configurações do Portal'], ['users', 'Usuários'],
-    ['blacklist', 'Lista negra'], ['filter', 'Filtro de conteúdo'], ['band', 'Agendamento de banda'],
-    ['report', 'Relatório'], ['security', 'Segurança & LGPD'], ['log', 'Log de eventos']
+    ['dashboard', 'Dashboard'], ['config', 'Configurações do Portal'], ['regfields', 'Configurações de Cadastro'],
+    ['users', 'Usuários'], ['blacklist', 'Lista negra'], ['filter', 'Filtro de conteúdo'],
+    ['band', 'Agendamento de banda'], ['report', 'Relatório'], ['security', 'Segurança & LGPD'], ['log', 'Log de eventos']
   ];
   var current = 'dashboard';
 
@@ -121,6 +121,25 @@
         toast(c[1] + (e.target.checked ? ' ativado' : ' desativado'));
       });
       box.appendChild(card);
+    });
+  }
+
+  // ---- Configurações de Cadastro ----------------------------------------
+  function renderRegfields() {
+    var tb = $('#regfields-table tbody'); tb.innerHTML = '';
+    S.getRegFields().forEach(function (f) {
+      var tr = document.createElement('tr');
+      var onSw = '<label class="switch"><input type="checkbox" data-on="' + f.key + '" ' + (f.on ? 'checked' : '') + (f.locked ? ' disabled' : '') + '><span class="track"></span></label>';
+      var reqSw = '<label class="switch"><input type="checkbox" data-req="' + f.key + '" ' + (f.required ? 'checked' : '') + ((f.locked || !f.on) ? ' disabled' : '') + '><span class="track"></span></label>';
+      tr.innerHTML = '<td><strong>' + esc(f.label) + '</strong>' + (f.locked ? ' <span class="badge muted">essencial</span>' : '') + '</td>' +
+        '<td class="small muted">' + f.type + '</td><td>' + onSw + '</td><td>' + reqSw + '</td>';
+      tb.appendChild(tr);
+    });
+    tb.querySelectorAll('[data-on]').forEach(function (i) {
+      i.addEventListener('change', function () { S.setRegField(i.getAttribute('data-on'), 'on', i.checked); toast('Campo atualizado'); renderRegfields(); });
+    });
+    tb.querySelectorAll('[data-req]').forEach(function (i) {
+      i.addEventListener('change', function () { S.setRegField(i.getAttribute('data-req'), 'required', i.checked); toast('Campo atualizado'); });
     });
   }
 
@@ -274,6 +293,7 @@
     buildTabs();
     if (current === 'dashboard') renderDashboard();
     else if (current === 'config') renderConfig();
+    else if (current === 'regfields') renderRegfields();
     else if (current === 'users') renderUsers();
     else if (current === 'blacklist') renderBlacklist();
     else if (current === 'filter') renderFilter();
