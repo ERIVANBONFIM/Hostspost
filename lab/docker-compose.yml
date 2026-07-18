@@ -1,0 +1,47 @@
+# Lab de homologação Hostspost — Nível 1 (só Docker)
+# FreeRADIUS 3.x + MariaDB para validar a lógica AAA com radclient.
+# Uso:
+#   docker compose up -d
+#   bash tests/run-acceptance.sh
+#
+# Requisitos: Docker + Docker Compose. Não precisa de MikroTik para o Nível 1.
+
+services:
+  mariadb:
+    image: mariadb:11
+    container_name: hostspost-lab-db
+    environment:
+      MARIADB_ROOT_PASSWORD: rootpass
+      MARIADB_DATABASE: radius
+      MARIADB_USER: radius
+      MARIADB_PASSWORD: radpass
+    # init/*.sql roda em ordem alfabética na primeira criação do volume
+    volumes:
+      - ./mariadb/init:/docker-entrypoint-initdb.d:ro
+      - db-data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  freeradius:
+    image: freeradius/freeradius-server:3.2.5
+    container_name: hostspost-lab-radius
+    depends_on:
+      mariadb:
+        condition: service_healthy
+    # Overlay: montamos apenas os arquivos que sobrescrevem a config padrão da imagem.
+    volumes:
+      - ./freeradius/clients.conf:/etc/raddb/clients.conf:ro
+      - ./freeradius/mods-config-sql.conf:/etc/raddb/mods-available/sql:ro
+      - ./freeradius/entrypoint.sh:/lab-entrypoint.sh:ro
+    # habilita o módulo sql nos sites e sobe em modo debug (-X) para diagnóstico
+    entrypoint: ["/bin/sh", "/lab-entrypoint.sh"]
+    ports:
+      - "1812:1812/udp"   # auth
+      - "1813:1813/udp"   # accounting
+      - "3799:3799/udp"   # CoA/Disconnect (usado no Nível 2, com CHR)
+
+volumes:
+  db-data:

@@ -1,0 +1,7 @@
+User-Name = "12345678900"
+User-Password = "senha-teste"
+NAS-IP-Address = 127.0.0.1
+NAS-Port = 0
+NAS-Port-Type = Wireless-802.11
+Calling-Station-Id = "00-11-22-33-44-01"
+Called-Station-Id = "AA-BB-CC-DD-EE-00:Hostspost-Visitantes"
