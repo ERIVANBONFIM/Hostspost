@@ -15,7 +15,21 @@ automático** (Caddy). O MikroTik + FreeRADIUS são infra de rede à parte (ver
   para o IP da VPS. (O Caddy só emite o certificado HTTPS se o DNS já resolver.)
 - Portas **80** e **443** liberadas no firewall.
 
-## Passo a passo
+## Caminho rápido (1 comando, HTTP por IP — sem domínio)
+
+Para ver rodando na VPS já, sem domínio/HTTPS:
+
+```bash
+# na VPS, como root, dentro do repositório clonado:
+bash deploy/vps-setup.sh
+```
+
+O script instala o Docker (se faltar), cria `deploy/.env` com `DOMAIN=:80` (HTTP no IP) e
+um `ADMIN_TOKEN` gerado, e sobe tudo. Acesse `http://SEU_IP/`.
+Para **HTTPS**, depois troque `DOMAIN` no `deploy/.env` pelo seu domínio (com DNS
+apontando para a VPS) e rode o `up -d --build` novamente.
+
+## Passo a passo (com domínio + HTTPS)
 
 ```bash
 # 1) Instalar Docker (uma vez)
