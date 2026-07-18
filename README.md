@@ -8,7 +8,9 @@ e **Marco Civil da Internet**.
 Este repositório contém:
 
 - **[`app/`](app/)** — a maquete front-end da **Versão 2**: portal do visitante + painel
-  administrativo (demo funcional em HTML/CSS/JS, sem back-end).
+  administrativo (demo funcional em HTML/CSS/JS).
+- **[`backend/`](backend/)** — o **serviço de integração** portal ↔ FreeRADIUS (SMS,
+  login, lista negra, limite de dispositivos), em Node, testável e com adaptador MySQL.
 - **[`docs/`](docs/)** — a **documentação técnica de implantação em produção**.
 - **[`lab/`](lab/)** — o **kit de homologação** para validar as configs.
 
