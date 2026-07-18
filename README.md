@@ -31,6 +31,20 @@ autenticação.
 | 06 | [docs/06-seguranca-lgpd.md](docs/06-seguranca-lgpd.md) | Segurança, LGPD e Marco Civil |
 | 07 | [docs/07-checklist-implantacao.md](docs/07-checklist-implantacao.md) | Checklist de go-live, testes e rollback |
 
+## Lab de homologação
+
+O diretório [`lab/`](lab/) traz um ambiente reprodutível para **validar as configs antes
+da produção**, em dois níveis:
+
+- **Nível 1 (só Docker):** FreeRADIUS + MariaDB + testes com `radclient` que simulam o
+  MikroTik. Valida login, blacklist e limite de dispositivos por CPF sem hardware.
+  `cd lab && make up && make test`
+- **Nível 2 (com virtualização):** script RouterOS pronto
+  ([`lab/mikrotik-chr/hostspost-lab.rsc`](lab/mikrotik-chr/hostspost-lab.rsc)) para um
+  MikroTik CHR, validando o captive portal ponta a ponta.
+
+Detalhes em [`lab/README.md`](lab/README.md).
+
 ## Convenções
 
 - Idioma: **português (PT-BR)**.

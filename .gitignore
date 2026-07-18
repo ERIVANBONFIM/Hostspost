@@ -1,0 +1,23 @@
+# Sistema
+.DS_Store
+Thumbs.db
+
+# Editores
+.vscode/
+.idea/
+*.swp
+
+# Logs / temporários
+*.log
+*.tmp
+
+# Segredos locais (NUNCA versionar credenciais reais)
+*.env
+.env
+*.pem
+*.key
+secrets.*
+
+# Artefatos do MikroTik exportados de produção
+*.backup
+export-*.rsc

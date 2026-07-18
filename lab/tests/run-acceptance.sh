@@ -29,7 +29,11 @@ send() {
 
 echo "==> Aguardando o FreeRADIUS responder..."
 for i in $(seq 1 30); do
-  if printf 'User-Name="ping"\n' | FR radclient -c 1 "$RAD_AUTH" auth "$SECRET" >/dev/null 2>&1; then break; fi
+  # Pronto assim que houver QUALQUER resposta (Access-Reject de usuário inexistente serve)
+  if printf 'User-Name="ping"\nUser-Password="x"\n' \
+       | FR radclient -c 1 -t 1 "$RAD_AUTH" auth "$SECRET" 2>&1 | grep -q "Received"; then
+    break
+  fi
   sleep 2
 done
 

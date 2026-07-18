@@ -111,7 +111,7 @@ docker compose exec -T freeradius \
 
 - **Segredo `testing123` e senhas são de LAB.** Nunca use em produção.
 - Se o `docker pull` falhar por rede restrita, baixe as imagens
-  (`mariadb:11`, `freeradius/freeradius-server:3.2.5`) num ambiente com acesso e
+  (`mariadb:11`, `freeradius/freeradius-server:latest`) num ambiente com acesso e
   transfira, ou ajuste as tags no [`docker-compose.yml`](docker-compose.yml).
 - O FreeRADIUS sobe em **modo debug (`-X`)** para facilitar o diagnóstico; a saída
   detalhada aparece em `docker compose logs freeradius`.
