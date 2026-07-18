@@ -74,6 +74,10 @@ hipervisor (VirtualBox, VMware, Proxmox/KVM). Obtenha a imagem em
 <https://mikrotik.com/download> (seção Cloud Hosted Router). A licença gratuita basta
 para homologação.
 
+> **Config pronta para importar:** use [`mikrotik-chr/hostspost-lab.rsc`](mikrotik-chr/hostspost-lab.rsc)
+> e siga o passo a passo em [`mikrotik-chr/README.md`](mikrotik-chr/README.md). Os passos
+> abaixo resumem o mesmo processo.
+
 ### Passos
 1. **Suba o Nível 1** e anote o IP do host Docker (ex.: `192.168.88.10`).
 2. **Importe o CHR** no hipervisor, com duas interfaces:
