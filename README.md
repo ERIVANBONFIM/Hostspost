@@ -13,6 +13,7 @@ Este repositório contém:
   login, lista negra, limite de dispositivos), em Node, testável e com adaptador MySQL.
 - **[`docs/`](docs/)** — a **documentação técnica de implantação em produção**.
 - **[`lab/`](lab/)** — o **kit de homologação** para validar as configs.
+- **[`deploy/`](deploy/)** — **deploy na VPS** (Docker + Caddy com HTTPS automático).
 
 Infraestrutura de referência:
 

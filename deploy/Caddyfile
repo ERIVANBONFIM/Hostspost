@@ -1,0 +1,16 @@
+# Caddy — serve o app estático e faz proxy da API, com HTTPS automático.
+# O domínio vem da variável DOMAIN (definida no .env).
+{$DOMAIN} {
+	encode gzip
+
+	# API -> backend Node
+	@api path /api/*
+	reverse_proxy @api backend:3000
+
+	# App estático (portal + admin)
+	root * /srv
+	file_server
+
+	# fallback para o launcher
+	try_files {path} /index.html
+}

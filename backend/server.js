@@ -104,8 +104,32 @@ function defaultServer() {
 
 module.exports = { createServer: createServer, buildServer: buildServer, defaultServer: defaultServer };
 
-if (require.main === module) {
+// Sobe o servidor escolhendo o store pelo ambiente:
+//  - DB_HOST definido -> adaptador MySQL (schema do FreeRADIUS, produção);
+//  - senão            -> store em memória (demo/dev).
+async function startFromEnv() {
   var port = Number(process.env.PORT || 3000);
-  if (!process.env.ADMIN_TOKEN) console.warn('[hostspost-backend] AVISO: ADMIN_TOKEN não definido — rotas de admin ABERTAS (use apenas em dev).');
-  defaultServer().listen(port, function () { console.log('[hostspost-backend] ouvindo em http://localhost:' + port); });
+  var adminToken = process.env.ADMIN_TOKEN || null;
+  if (!adminToken) console.warn('[hostspost-backend] AVISO: ADMIN_TOKEN não definido — rotas de admin ABERTAS (use apenas em dev).');
+
+  var store, modo;
+  if (process.env.DB_HOST) {
+    var createMysqlStore = require('./adapters/mysql.js').createMysqlStore; // requer mysql2
+    store = await createMysqlStore({
+      host: process.env.DB_HOST, port: Number(process.env.DB_PORT || 3306),
+      user: process.env.DB_USER, password: process.env.DB_PASS, database: process.env.DB_NAME
+    });
+    modo = 'MySQL (' + process.env.DB_HOST + ')';
+  } else {
+    store = mem.createMemoryStore({ blacklist: [{ valor: '999.999.999-99', motivo: 'seed' }] });
+    modo = 'memória (dev)';
+  }
+  var service = svc.createService(store, { deviceLimit: Number(process.env.DEVICE_LIMIT || 2) });
+  createServer(service, { adminToken: adminToken }).listen(port, function () {
+    console.log('[hostspost-backend] ouvindo em http://localhost:' + port + ' — store: ' + modo);
+  });
+}
+
+if (require.main === module) {
+  startFromEnv().catch(function (e) { console.error('[hostspost-backend] falha ao iniciar:', e.message); process.exit(1); });
 }

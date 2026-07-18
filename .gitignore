@@ -14,9 +14,13 @@ Thumbs.db
 # Segredos locais (NUNCA versionar credenciais reais)
 *.env
 .env
+deploy/.env
 *.pem
 *.key
 secrets.*
+
+# Node
+node_modules/
 
 # Artefatos do MikroTik exportados de produção
 *.backup

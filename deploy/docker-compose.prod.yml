@@ -1,0 +1,46 @@
+# Deploy de produção do Hostspost (app + backend) com HTTPS automático (Caddy).
+# Uso na VPS:
+#   cp deploy/.env.example deploy/.env   # e edite
+#   docker compose -f deploy/docker-compose.prod.yml --env-file deploy/.env up -d
+#
+# Pré-requisitos: Docker + Docker Compose e um domínio apontando (A/AAAA) para a VPS.
+# O banco FreeRADIUS (MySQL) é EXTERNO — informe DB_* no .env para produção; sem eles
+# o backend sobe em memória (bom para um primeiro teste, não persiste).
+
+services:
+  backend:
+    build:
+      context: ..
+      dockerfile: deploy/Dockerfile.backend
+    environment:
+      PORT: "3000"
+      ADMIN_TOKEN: "${ADMIN_TOKEN}"
+      DEVICE_LIMIT: "${DEVICE_LIMIT:-2}"
+      DB_HOST: "${DB_HOST:-}"
+      DB_PORT: "${DB_PORT:-3306}"
+      DB_USER: "${DB_USER:-}"
+      DB_PASS: "${DB_PASS:-}"
+      DB_NAME: "${DB_NAME:-}"
+    restart: unless-stopped
+    expose:
+      - "3000"
+
+  caddy:
+    image: caddy:2
+    depends_on:
+      - backend
+    environment:
+      DOMAIN: "${DOMAIN}"
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ../app:/srv:ro
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    restart: unless-stopped
+
+volumes:
+  caddy_data:
+  caddy_config:

@@ -1,0 +1,19 @@
+# Imagem do backend de integração Hostspost.
+# Store em memória não precisa de dependências. Para usar MySQL (produção com
+# FreeRADIUS), descomente o bloco de instalação do mysql2.
+FROM node:20-alpine
+WORKDIR /app
+
+COPY backend/ ./
+
+# --- MySQL (produção): descomente para instalar o driver ---
+# RUN npm install --omit=dev
+
+ENV PORT=3000
+EXPOSE 3000
+
+# healthcheck simples via node
+HEALTHCHECK --interval=30s --timeout=3s --retries=3 \
+  CMD wget -qO- http://127.0.0.1:3000/api/health || exit 1
+
+CMD ["node", "server.js"]

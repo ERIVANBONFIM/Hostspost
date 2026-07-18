@@ -7,7 +7,14 @@
 (function (root) {
   'use strict';
   var ls = root.localStorage;
-  var BASE = (ls && ls.getItem('hostspost.apiBase')) || 'http://localhost:3000';
+  // Base da API:
+  //  - se definido em localStorage.hostspost.apiBase, usa isso (dev);
+  //  - no navegador (produção atrás de proxy): mesma origem ('' -> /api/...);
+  //  - fora do navegador (Node/testes): localhost:3000 (ajustado via setBase).
+  var BASE = (ls && ls.getItem('hostspost.apiBase'));
+  if (BASE == null) {
+    BASE = (root.location && /^https?:$/.test(root.location.protocol)) ? '' : 'http://localhost:3000';
+  }
   var TOKEN = (ls && ls.getItem('hostspost.adminToken')) || null; // usado nas rotas de admin
 
   async function call(method, path, body) {
